@@ -4,6 +4,8 @@ import { NewsAPITool } from '../src/tools/newsapi'; // Go up one level, then int
 import { Agent } from '../src/agent'; // Go up one level, then into src
 import { SimpleMemory } from '../src/memory'; // Go up one level, then into src
 import { Tool } from '../src/tools/api_tool'; // Go up one level, then into src/tools
+import { TempProver } from '../src/provers/proofoftemp'; // Go up one level, then into src/provers
+import { Prover } from '../src/provers/prover'; // Go up one level, then into src/provers
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,7 +18,7 @@ async function runBinoai() {
     console.error("Please set the OPENAI_API_KEY environment variable.");
     return;
   }
-  llm = new OpenAILLM(apiKey, "gpt-3.5-turbo"); // Use gpt-3.5-turbo for cost-effectiveness
+  llm = new OpenAILLM(apiKey); // Use gpt-3.5-turbo for cost-effectiveness
 
   const weatherApiKey = process.env.NUBILA_API_KEY;
   if (!weatherApiKey) {
@@ -32,10 +34,14 @@ async function runBinoai() {
 
   const weatherTool = new WeatherTool(weatherApiKey);
   const newsTool = new NewsAPITool(newsApiKey);
-
   const tools: Tool[] = [weatherTool, newsTool]; // Only Weather and News tools
+
+  const tempProver = new TempProver("");
+  const provers: Prover[] = [tempProver];
+
   const memory = new SimpleMemory();
-  const agent = new Agent(llm, tools, memory);
+
+  const agent = new Agent(llm, tools, provers, memory);
 
   // const inputs = [
   //   "What is the weather like?",
@@ -77,7 +83,7 @@ async function runBinoai() {
         console.error("Binoai Error:", error);
       }
       console.log("----");
-      
+
       // Ask for next input
       askQuestion();
     });

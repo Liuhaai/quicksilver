@@ -18,8 +18,7 @@ async function runDummyAgent() {
     const echoTool: Tool = new EchoTool(); // Explicitly type echoTool
     const tools: Tool[] = [echoTool];
     const memory = new SimpleMemory();
-    const workflow = new Workflow(llm, tools, memory);
-    const agent = new Agent(llm, tools, memory);
+    const agent = new Agent(llm, tools, [], memory);
 
     const inputs = [
         "Hello, Quicksilver!",

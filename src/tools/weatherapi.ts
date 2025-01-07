@@ -29,6 +29,22 @@ export class WeatherTool implements Tool {
     }
 
     async execute(userInput: any): Promise<string> {
+
+        console.log("WeatherTool executing with input:", userInput);
+
+
+        // convert userInput from string to JSON object 
+        if (typeof userInput === 'string') {
+            try {
+                userInput = JSON.parse(userInput);
+            } catch (error) {
+                console.error("Error parsing user input:", error);
+                return "Invalid input. Please provide a JSON object with 'latitude' and 'longitude' properties.";
+            }
+        }
+        // debug the type of userInput
+        console.log("Type of userInput:", typeof userInput);
+
         // check user input is json with latitude and longitude
         if (!userInput || typeof userInput !== 'object' || !('latitude' in userInput) || !('longitude' in userInput)) {
             return "Invalid input. Please provide a JSON object with 'latitude' and 'longitude' properties.";

@@ -8,6 +8,12 @@ interface ActionResult {
     output: string;
 }
 
+interface Action2Result {
+    prover?: Prover;
+    output: string;
+}
+
+
 export class Workflow {
     llm: LLM;
     tools: Tool[];
@@ -56,30 +62,36 @@ export class Workflow {
                     Previous Conversation: ${JSON.stringify(memoryVariables.history)}
                     User Input: ${input}
                     Tool Used: ${action.tool.name}
-                    Tool Input: ${action.output}
+                    Tool Input: ${JSON.stringify(action.output)}
                     Tool Output: ${toolOutput}
 
-                    Available Provers: ${JSON.stringify(availableProvers)}
+                    
 
                     Respond with a JSON object in the following format:
                     \`\`\`json
                     {
                         "prover": "prover_name_or_null", // The name of the prover to use, or null if no prover is needed
-                        "prover_input": "input_for_the_prover" // The input to pass to the tool in json format (only if a tool is selected)
+                        "prover_input": "input_for_the_prover" // The input to pass to the prover in json format (only if a prover is selected)
                     }
                     \`\`\`
-                    If no prover is needed, set "prover" to null and provide a response in "tool_input".
+
+                    If no proving action is requested in User Input, set "prover" to null", Otherwise, there are available provers: ${JSON.stringify(availableProvers)}
                 `;
+
+                console.log("Prover Prompt:", proverPrompt);
 
                 const llmResponseforProver = await this.llm.generate(proverPrompt);
                 console.log("LLM raw response for prover:", llmResponseforProver)
-                const proverAction: ActionResult = this.parseLLMResponseforProver(llmResponseforProver);
+                const proverAction: Action2Result = this.parseLLMResponseforProver(llmResponseforProver);
 
+                console.log("Prover Action:", proverAction);
 
                 let proverOutput: string = "None";
-                if (proverAction.tool) {
-                    proverOutput = await proverAction.tool.execute(proverAction.output);
+                if (proverAction.prover) {
+                    proverOutput = await proverAction.prover.prove(proverAction.output);
                 }
+
+                console.log("Prover Output:", proverOutput);
 
                 // FEED TOOL OUTPUT BACK TO LLM
                 const finalPrompt = `
@@ -88,12 +100,15 @@ export class Workflow {
                     Tool Used: ${action.tool.name}
                     Tool Input: ${action.output}
                     Tool Output: ${toolOutput}
-                    Prover Used: ${proverAction.tool ? proverAction.tool.name : "None"}
+                    Prover Used: ${proverAction.prover ? proverAction.prover.name : "None"}
                     Prover Input: ${proverAction.output}
                     Prover Output: ${proverOutput}
 
-                    Generate a human-readable response based on the tool output.
+                    Generate a human-readable response based on the tool and prover output.
                 `;
+
+                console.log("Final Prompt:", finalPrompt);
+
                 output = await this.llm.generate(finalPrompt);
 
             } else {
@@ -115,18 +130,18 @@ export class Workflow {
             const cleanResponse = llmResponse.replace(/```json\n/g, '').replace(/```/g, '').trim();
 
             const jsonResponse = JSON.parse(cleanResponse);
-            const toolName = jsonResponse.tool;
-            const toolInput = jsonResponse.tool_input;
+            const proverName = jsonResponse.tool;
+            const proverInput = jsonResponse.tool_input;
 
-            if (toolName) {
-                const tool = this.tools.find(t => t.name === toolName);
+            if (proverName) {
+                const tool = this.tools.find(t => t.name === proverName);
                 if (tool) {
-                    return { tool, output: toolInput };
+                    return { tool, output: proverInput };
                 } else {
-                    return { output: `Tool "${toolName}" not found.` };
+                    return { output: `Tool "${proverName}" not found.` };
                 }
             } else {
-                return { output: toolInput || "No tool needed." };
+                return { output: proverInput || "No tool needed." };
             }
         } catch (error) {
             console.error("Error parsing LLM response:", error, "Raw LLM Response:", llmResponse);
@@ -134,24 +149,24 @@ export class Workflow {
         }
     }
 
-    private parseLLMResponseforProver(llmResponse: string): ActionResult {
+    private parseLLMResponseforProver(llmResponse: string): Action2Result {
         try {
             // Remove Markdown code blocks if present
             const cleanResponse = llmResponse.replace(/```json\n/g, '').replace(/```/g, '').trim();
 
             const jsonResponse = JSON.parse(cleanResponse);
-            const toolName = jsonResponse.tool;
-            const toolInput = jsonResponse.tool_input;
+            const proverName = jsonResponse.prover;
+            const proverInput = jsonResponse.prover_input;
 
-            if (toolName) {
-                const tool = this.tools.find(t => t.name === toolName);
-                if (tool) {
-                    return { tool, output: toolInput };
+            if (proverName) {
+                const prover = this.provers.find(t => t.name === proverName);
+                if (prover) {
+                    return { prover, output: proverInput };
                 } else {
-                    return { output: `Tool "${toolName}" not found.` };
+                    return { output: `Tool "${proverName}" not found.` };
                 }
             } else {
-                return { output: toolInput || "No tool needed." };
+                return { output: proverInput || "No tool needed." };
             }
         } catch (error) {
             console.error("Error parsing LLM response:", error, "Raw LLM Response:", llmResponse);

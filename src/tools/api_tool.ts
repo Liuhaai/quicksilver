@@ -1,7 +1,7 @@
 export interface Tool {
     name: string;
     description: string;
-    execute(input: string): Promise<string>;
+    execute(input: any): Promise<string>;
 }
 
 export abstract class APITool implements Tool {
@@ -15,5 +15,5 @@ export abstract class APITool implements Tool {
         this.apiKey = apiKey;
     }
 
-    abstract execute(input: string): Promise<string>;
+    abstract execute(input: any): Promise<string>;
 }

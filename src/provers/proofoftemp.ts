@@ -12,6 +12,16 @@ export class TempProver implements Prover {
     }
 
     async prove(userInput: any): Promise<string> {
+        // convert userInput from string to JSON object
+        if (typeof userInput === 'string') {
+            try {
+                userInput = JSON.parse(userInput);
+            } catch (error) {
+                console.error("Error parsing user input:", error);
+                return "Invalid input. Please provide a JSON object with 'temperature' properties.";
+            }
+        }
+
         // check user input is json with temperature
         if (!userInput || typeof userInput !== 'object' || !('temperature' in userInput)) {
             return "Invalid input. Please provide a JSON object with 'temperature' properties.";
